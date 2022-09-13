@@ -33,7 +33,7 @@ To use it, you need a user management system that enables the user to register a
  3. Your account is then activated.
 
  <p align=center>
-  <img src="assets/videos/user-management-service.gif" />
+  <img src="assets/videos/email-service.gif" />
 </p>
 
  ## Features
