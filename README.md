@@ -26,7 +26,7 @@ This is a simple web application that makes the sending of email easier. It enab
 
 ## Working 
 
-To use it, you need a user management system that enables the user to register an account. The email used to register then can be used bythis application. The application also uses the same database as the user managment system to activate the user's account once they have clicked the confirmation link in their email. To use, you need an email provider such AWS SES:
+To use it, you need a [user management system](https://github.com/twyle/user-management-service) that enables the user to register an account. The email used to register then can be used bythis application. The application also uses the same database as the user managment system to activate the user's account once they have clicked the confirmation link in their email. To use, you need an email provider such AWS SES:
 
  1. Submit your email address (post email through send route)
  2. Confirm your email address (paste the activation token through the confirm route).
