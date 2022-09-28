@@ -1,8 +1,9 @@
 from flask import Flask, jsonify
 from .helpers import set_flask_environment
-from .extensions import mail, db, ma, cors, swagger
+from .extensions import mail, db, ma, cors, swagger, migrate
 from .mail_blueprint.views import mail as mail_blueprint
 from flasgger import LazyJSONEncoder
+from .auth.views import auth
 
 
 def create_app(scrpt_info=None):
@@ -24,9 +25,11 @@ def create_app(scrpt_info=None):
     mail.init_app(app)
     app.json_encoder = LazyJSONEncoder
     swagger.init_app(app)
+    migrate.init_app(app,db)
     
     app.register_blueprint(mail_blueprint, url_prefix='/api/v1/mail')
+    app.register_blueprint(auth, url_prefix='/api/v1/auth')
     
     # shell context for flask cli
-    app.shell_context_processor({'app': app})
+    app.shell_context_processor({'app': app, 'db': db})
     return app

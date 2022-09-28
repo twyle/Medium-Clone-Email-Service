@@ -1,11 +1,16 @@
 description: Confirm the email address
 tags:
-  - Email
+  - Authentication
 produces:
   - "application/json"
 security:
   - APIKeyHeader: [ 'Authorization' ]
 parameters:
+  - in: query
+    description: The query should contain the user id
+    required: true
+    name: 'id'
+    type: 'string'
   - in: query
     description: The query should contain the email confirm token
     required: true

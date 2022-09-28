@@ -1,56 +1,54 @@
-from ..extensions import db, ma
-from datetime import datetime
-from dataclasses import dataclass
+# -*- coding: utf-8 -*-
+"""Create the models used by the email package."""
+from flask import url_for
+from flask_mail import Message
+
+from ..extensions import mail, url_serializer
 
 
-@dataclass
-class User(db.Model):
-    """A user.
-    
-    """
-    
-    __tablename__ = 'user'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    name: str = db.Column(db.String(100), nullable=False)
-    email: str = db.Column(db.Text, nullable=False)
-    date_registered = db.Column(db.DateTime(), default=datetime.utcnow)
-    active: bool = db.Column(db.Boolean(), nullable=False, default=False)
-    admin: bool = db.Column(db.Boolean(), nullable=False, default=False)
-    password: str = db.Column(db.String(100), nullable=False)
-    profile_pic: str = db.Column(db.String(100), nullable=True)
+class EmailMessage:
+    """Model of the email to be sent."""
 
-    def __init__(self, name: str, email: str, password: str) -> None:
-        """Create a new user.
-        
-        Creates a new user in the user table with an increasing id, with active
-        set as True by default and with the given email.
-        
-        Attributes
-        ----------
-        email: str
-            The user's email
-        """
-        self.name = name
-        self.email = email 
-        self.password = password
+    user_id: str
+    email_title: str
+    email_link: str
+    email_address: str
+    toke: str
 
+    def __init__(
+        self, user_id: str, email_title: str, api_email_link: str, email_address: str
+    ) -> None:
+        """Create an email message."""
+        self.user_id = (user_id,)
+        self.email_title = email_title
+        self.email_address = email_address
+        self.api_email_link = api_email_link
 
-class UserSchema(ma.Schema):
-    class Meta:
-        fields = ('id', 'name', 'email', 'date_registered')
-        
-        
-class ProfileSchema(ma.Schema):
-    class Meta:
-        fields = ('name', 'email', 'profile_pic')
-        
-class AuthSchema(ma.Schema):
-    class Meta:
-        fields = ('id', 'name', 'email', 'date_registered', 'password')
+        self._create_token()
+        self._create_link()
+        self._create_message()
 
+    def _create_token(self):
+        """Create the token."""
+        self.token = url_serializer.dumps(self.email_address, salt="somesalt")
 
-user_schema = UserSchema()
-users_schema = UserSchema(many=True)
-profile_schema = ProfileSchema()
-auth_schema = AuthSchema()
+    def _create_link(self):
+        """Create the email link."""
+        self.link = url_for(
+            self.api_email_link, id=self.user_id, token=self.token, _external=True
+        )
+
+    def _create_message(self):
+        """Create the email."""
+        self.message = Message(
+            self.email_title, sender=self.email_address, recipients=[self.email_address]
+        )
+        self.message.body = f"Your {self.email_title} link is {self.link}"
+
+    def send_message(self):
+        """Send the email."""
+        mail.send(self.message)
+        return {
+            f"{self.email_title} email sent to": self.email_address,
+            "token": self.token,
+        }
