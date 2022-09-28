@@ -47,8 +47,12 @@ class EmailMessage:
 
     def send_message(self):
         """Send the email."""
-        mail.send(self.message)
-        return {
-            f"{self.email_title} email sent to": self.email_address,
-            "token": self.token,
-        }
+        try:
+            mail.send(self.message)
+        except Exception as e:
+            return {'error': str(e)}
+        else:
+            return {
+                f"{self.email_title} email sent to": self.email_address,
+                "token": self.token,
+            }

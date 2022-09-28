@@ -1,5 +1,5 @@
 # email-service
-> A service that send users emails such as account activation or password reset email.
+> A service that enables a user to register with a name and email address then confirm their email address.
 
 <p align="center">
   <img title="Bandit badge" alt="Bandit badge" src="https://github.com/twyle/user-management-service/actions/workflows/feature-development-workflow.yml/badge.svg" />
@@ -22,15 +22,16 @@
 ![](assets/images/email_service.png)
 
 ## Project Overview
-This is a simple web application that makes the sending of email easier. It enables the uesr to send single or mutiple emails for use cases such as account confirmation, password rest as well for general communication. It is built with flask and deployed to AWS Beanstalk and uses AWS SES.
+This is a simple web application that makes the sending of account confirmation email easier. A user registers with their name and email address. They then have to click on the link sent to their email address to activate their account.
 
 ## Working 
 
-To use it, you need a [user management system](https://github.com/twyle/user-management-service) that enables the user to register an account. The email used to register then can be used bythis application. The application also uses the same database as the user managment system to activate the user's account once they have clicked the confirmation link in their email. To use, you need an email provider such AWS SES:
+To use it, you need an email provider such as Google or Amazon SES. Then:
 
- 1. Submit your email address (post email through send route)
- 2. Confirm your email address (paste the activation token through the confirm route).
- 3. Your account is then activated.
+ 1. Register for an account using the auth/register route (provide a username and email address)
+ 2. Send a confirmation email using the send email route (provide your user id and email)
+ 3. Confirm your email address (paste the activation token through the confirm route or click on the link in your email).
+ 4. Your account is then activated.
 
  <p align=center>
   <img src="assets/videos/email-service.gif" />
@@ -96,8 +97,8 @@ Here is how to set up the application locally:
         FLASK_DEBUG=True
         FLASK_ENV=development
 
-        POSTGRES_HOST=<YOUR_COMPUTER_IP_ADDRESS>
-        POSTGRES_DB=lyle
+        POSTGRES_HOST=db
+        POSTGRES_DB=email-service
         POSTGRES_PORT=5432
         POSTGRES_USER=postgres
         POSTGRES_PASSWORD=lyle
@@ -108,15 +109,41 @@ Here is how to set up the application locally:
         MAIL_PORT=465
         MAIL_USE_SSL=True
 
+        CELERY_RESULT_BACKEND=redis://redis:6379/0
+        CELERY_BROKER_URL=redis://redis:6379/0
+
+        SERVER_NAME=localhost:5000
+        PREFERRED_URL_SCHEME=http
+
       ```
+      Then create the database secrets:
+
+      ```sh
+      cd database
+      touch .env
+      ```
+
+      Then paste the following into the file:
+      ```sh
+      POSTGRES_HOST=localhost
+      POSTGRES_USER=lyle
+      POSTGRES_PASSWORD=lyle
+      POSTGRES_DB=email-service    
+      ```  
 
   7. Start the services:
 
       ```sh
-      python manage.py run
+      docker-compose -f docker-compose-dev.yml up --build
       ```
 
-  8. View the running application
+  8. Create the database:
+
+      ```sh
+      docker-compose -f docker-compose-dev.yml exec email-service python manage.py create_db
+      ```
+
+  9. View the running application
 
       Head over to http://0.0.0.0:5000/apidocs 
 
@@ -137,13 +164,14 @@ Here is how to set up the application locally:
         | Route                   | Method  | Description                 |
         | ------------------------| ------- |---------------------------- |
         | 'api/v1/email/send'     | POST    | Send confirmation email.    |
-        | 'api/v1/email/confirm'  | GET     | Activate account.           |
+        | 'api/v1/auth/confirm'   | GET     | Activate account.           |
+        | 'api/v1/auth/register'  | POST    | Register for a ccount.      |
         
         1. Register as a new user with a unique email address and password as well as name.(Generates a uniques token) 
         2. Proceed to your email address and click on the link given within 24 hours to activate your account. (marks account as activated)
         3. Log into your account using your email and password. (You get a unique token for authorization)
 
-        This service uses the Postgres Database to store the user info. It uses an SQS queue to schedule the sending of account activation emails, handled by the emailer Lambda function. It also writes logs to the sqs queue to be processed by the logging lambda function.
+        This service uses the Postgres Database to store the user info. It uses AWS SES to send emails using celery.
 
  #### 2. Project Management
 
@@ -188,12 +216,11 @@ The workflows require a couple of secrets to work:
 
       ```sh
         FLASK_APP=manage.py
+        FLASK_DEBUG=True
         FLASK_ENV=development
 
-        SECRET_KEY=supersecretkey
-
-        POSTGRES_HOST=<YOUR-IP-ADDRESS>
-        POSTGRES_DB=lyle
+        POSTGRES_HOST=db
+        POSTGRES_DB=email-service
         POSTGRES_PORT=5432
         POSTGRES_USER=postgres
         POSTGRES_PASSWORD=lyle
@@ -203,6 +230,12 @@ The workflows require a couple of secrets to work:
         MAIL_SERVER=<mail-server>
         MAIL_PORT=465
         MAIL_USE_SSL=True
+
+        CELERY_RESULT_BACKEND=redis://redis:6379/0
+        CELERY_BROKER_URL=redis://redis:6379/0
+
+        SERVER_NAME=localhost:5000
+        PREFERRED_URL_SCHEME=http
 
       ```
 
